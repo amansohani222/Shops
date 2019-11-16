@@ -3,7 +3,7 @@ const app = express();
 const fs = require("fs");
 const morgan = require("morgan");
 const db = require("./config/database.js");
-
+const bodyParser = require("body-parser");
 //DB Connection
 db.authenticate()
   .then(() => {
@@ -14,8 +14,10 @@ db.authenticate()
   });
 
 // 1) Middlewares
+app.use(bodyParser.urlencoded({ extended: false }));
+//app.use(express.json());
 app.use(express.static(`${__dirname}/public`));
-app.use(express.json());
+
 if (process.env.NODE_ENV == "development") {
   app.use(morgan("dev"));
 }

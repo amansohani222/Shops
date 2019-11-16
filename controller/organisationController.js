@@ -23,6 +23,7 @@ const Organisation = require("../models/organisation.js");
 
 exports.createOrganisation = (req, res) => {
   const newOrganisation = req.body;
+  console.log(req.body);
   newOrganisation.active = true;
   Organisation.create(newOrganisation)
     .then(organisation => {
