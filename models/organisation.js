@@ -20,6 +20,12 @@ const Organisation = db.define("organisation", {
   location_url: {
     type: Sequelize.STRING
   },
+  latitude: {
+    type: Sequelize.DOUBLE
+  },
+  longitude: {
+    type: Sequelize.DOUBLE
+  },
   organisation_catogery: {
     type: Sequelize.STRING
   },
