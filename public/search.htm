@@ -1,0 +1,177 @@
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Get coordinates of the mouse pointer</title>
+    <meta
+      name="viewport"
+      content="initial-scale=1,maximum-scale=1,user-scalable=no"
+    />
+    <link
+      rel="stylesheet"
+      href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css"
+      integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u"
+      crossorigin="anonymous"
+    />
+    <script src="https://api.tiles.mapbox.com/mapbox-gl-js/v1.5.0/mapbox-gl.js"></script>
+    <link
+      href="https://api.tiles.mapbox.com/mapbox-gl-js/v1.5.0/mapbox-gl.css"
+      rel="stylesheet"
+    />
+    <style>
+      #info {
+        display: block;
+        position: relative;
+        margin: 0px auto;
+        width: 50%;
+        padding: 10px;
+        border: none;
+        border-radius: 3px;
+        font-size: 12px;
+        text-align: center;
+        color: #222;
+        background: #fff;
+      }
+      #map {
+        margin: auto auto;
+        width: 90%;
+        height: 50%;
+        display: absolute;
+      }
+      .ashu:hover {
+        background-color: grey;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="row" style="padding-top: 70px">
+        <div class="col-lg-6 col-sm-12 col-xs-12">
+          <h1 style="text-align: center">
+            Please enter your address ...
+          </h1>
+          <form>
+            <div class="form-group">
+              <input
+                class="form-control"
+                type="text"
+                name="address"
+                placeholder="locality"
+                autocomplete="off"
+              />
+            </div>
+            <div id="xyz"></div>
+            <div class="form-group"></div>
+            <div class="form-group">
+              <button class="btn btn-sm btn-primary btn-block">SUBMIT</button>
+            </div>
+          </form>
+          <a href="/">Go Back</a>
+        </div>
+        <div class="col-md-6 col-sm-12 col-xs-12">
+          <div id="map"></div>
+          <pre id="info"></pre>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      //Code For Rendering Map
+      mapboxgl.accessToken =
+        "pk.eyJ1IjoiYW1hbnNvaGFuaTIyMiIsImEiOiJjazJ3NmpwM2IwYnFlM2J2cHlrM3BhbjVjIn0.YlWrcd2sLZwZLhKeqHGvWA";
+      var map = new mapboxgl.Map({
+        container: "map", // container id
+        style: "mapbox://styles/mapbox/streets-v11",
+        center: [75.90277400665582, 22.72339360688204], // starting position
+        zoom: 9 // starting zoom
+      });
+      function flyToCurrentLocation() {
+        navigator.geolocation.getCurrentPosition(function(position) {
+          let lat = position.coords.latitude;
+          let lon = position.coords.longitude;
+          map.flyTo({ center: [lon, lat], zoom: 11 });
+        });
+      }
+      //flyToCurrentLocation();
+      //Add Zoom Controls
+      map.addControl(new mapboxgl.NavigationControl());
+
+      //Add current location button
+      const geoLoc = new mapboxgl.GeolocateControl({
+        positionOptions: {
+          enableHighAccuracy: true
+        }
+      });
+      map.addControl(geoLoc);
+      map.on("load", e => {
+        geoLoc.trigger();
+      });
+      var prev_marker = new mapboxgl.Marker()
+        .setLngLat([75.902431, 22.722831])
+        .addTo(map);
+      map.on("click", function(e) {
+        document.getElementById("info").innerHTML =
+          // e.point is the x, y coordinates of the mousemove event relative
+          // to the top-left corner of the map
+          JSON.stringify(e.point) +
+          "<br />" +
+          // e.lngLat is the longitude, latitude geographical position of the event
+          JSON.stringify(e.lngLat.wrap());
+        prev_marker.remove();
+        prev_marker = new mapboxgl.Marker().setLngLat(e.lngLat).addTo(map);
+      });
+
+      //Geocoding location entered by user
+      var inp = document.querySelector("input");
+      var div = document.querySelector("#xyz");
+      inp.addEventListener("keyup", function() {
+        if (event.which != 32) {
+          while (div.hasChildNodes()) {
+            div.removeChild(div.firstChild);
+          }
+        }
+        var address = this.value;
+        console.log(address);
+        var ourRequest = new XMLHttpRequest();
+        ourRequest.open(
+          "GET",
+          "https://api.mapbox.com/geocoding/v5/mapbox.places/" +
+            address +
+            ".json?access_token=pk.eyJ1IjoiYW1hbnNvaGFuaTIyMiIsImEiOiJjazJ3Nm00bnUwYnQzM29xbDMyOGZsdDczIn0.BZ3O2W1UtnKhXmecdsy74A"
+        );
+        ourRequest.onload = function() {
+          var ourData = JSON.parse(ourRequest.responseText);
+          // console.log(ourData);
+          for (var i = 0; i < ourData.features.length; i++) {
+            var li = document.createElement("li");
+            li.classList.add("list-group-item");
+            li.classList.add("ashu");
+            li.textContent = ourData.features[i].place_name;
+            li.coord = ourData.features[i].center;
+            div.appendChild(li);
+            li.addEventListener("click", function() {
+              while (div.hasChildNodes()) {
+                div.removeChild(div.firstChild);
+              }
+              //showMap(this.textContent);
+              inp.value = this.textContent;
+              prev_marker.remove();
+              prev_marker = new mapboxgl.Marker()
+                .setLngLat(this.coord)
+                .addTo(map);
+              map.flyTo({ center: this.coord, zoom: 11 });
+              document.getElementById("info").innerHTML = JSON.stringify({
+                lng: this.coord[0],
+                lat: this.coord[1]
+              });
+              console.log(this.coord);
+            });
+          }
+        };
+        ourRequest.onerror = function() {
+          console.log("Connection error");
+        };
+        ourRequest.send();
+      });
+    </script>
+  </body>
+</html>
